@@ -42,6 +42,7 @@ const (
 type Reference struct {
 	TableName            string
 	ColumnName           string
+	ColumnType           string
 	ReferencedTableName  string
 	ReferencedColumnName string
 	DeleteOption         ReferenceOption
@@ -53,11 +54,12 @@ func (r *Reference) PrettyPrint() {
 	fmt.Printf("%s.%s -> %s.%s ON DELETE %s, ON UPDATE %s\n", r.TableName, r.ColumnName, r.ReferencedTableName, r.ReferencedColumnName, r.DeleteOption, r.UpdateOption)
 }
 
-func NewReference(tableName string, columnName string, referencedTableName string,
+func NewReference(tableName string, columnName string, columnType string, referencedTableName string,
 	referencedColumnName string, deleteOption ReferenceOption, updateOption ReferenceOption) *Reference {
 	return &Reference{
 		TableName:            tableName,
 		ColumnName:           columnName,
+		ColumnType:           columnType,
 		ReferencedTableName:  referencedTableName,
 		ReferencedColumnName: referencedColumnName,
 		DeleteOption:         deleteOption,
@@ -227,6 +229,15 @@ func (t *Table) HasColumn(col *Column) (contains bool, index int) {
 		}
 	}
 	return false, -1
+}
+
+func (t *Table) HasColumByName(name string) int {
+	for i, c := range t.Columns {
+		if c.Name == name {
+			return i
+		}
+	}
+	return -1
 }
 
 func (c *Column) PrettyPrint() {

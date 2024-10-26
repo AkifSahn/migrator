@@ -3,13 +3,14 @@ package migrator
 import (
 	"database/sql"
 	"fmt"
-	"github.com/AkifSahn/migrator/schema"
-	"github.com/AkifSahn/migrator/utils"
 	"log"
 	"os"
 	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/AkifSahn/migrator/schema"
+	"github.com/AkifSahn/migrator/utils"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -346,6 +347,10 @@ func (m *Migrator) parseStructField(table *schema.Table, field reflect.StructFie
 
 	for _, rel := range m.Relations {
 		if utils.Pluralize(utils.ToMysqlName(rel.TableName)) == utils.Pluralize(utils.ToMysqlName(table.Name)) && utils.ToMysqlName(rel.ColumnName) == utils.ToMysqlName(col.Name) {
+			if rel.ColumnType != col.ColumnType {
+				fmt.Printf("Referenced column and foreign key column types does not match!. Referenced Col: %s, Foreign Key: %s", rel.ColumnType, col.ColumnType)
+				panic(nil)
+			}
 			table.References = append(table.References, rel)
 			col.ForeignKey = true
 			if rel.IsUnique && !col.PrimaryKey {
@@ -369,7 +374,12 @@ func (m *Migrator) parseStructField(table *schema.Table, field reflect.StructFie
 	fkTableName = utils.Pluralize(utils.ToMysqlName(fkTableName))
 
 	if setRelation {
-		m.newRelation(fkTableName, fkColumnName, referencedTableName, referencedColumnName, deleteOption, updateOption, isFkUnique)
+		var ix int
+		if ix = table.HasColumByName(referencedColumnName); ix >= 0 {
+			fmt.Printf("Column given for referencer: '%s' does not exists", referencedColumnName)
+			panic(nil)
+		}
+		m.newRelation(fkTableName, fkColumnName, referencedTableName, table.Columns[ix].ColumnType, referencedColumnName, deleteOption, updateOption, isFkUnique)
 	} else if col.ColumnType == "" {
 		var err error
 		col.ColumnType, err = utils.ToMysqlDataType(field.Type.String())
@@ -386,10 +396,11 @@ func (m *Migrator) parseStructField(table *schema.Table, field reflect.StructFie
 }
 
 // Creates a new relation and appends to the relations list of migrator object
-func (m *Migrator) newRelation(tableName, columnName, referencedTableName, referencedColumnName string, onDelete, onUpdate schema.ReferenceOption, isUnique bool) {
+func (m *Migrator) newRelation(tableName, columnName, columnType, referencedTableName, referencedColumnName string, onDelete, onUpdate schema.ReferenceOption, isUnique bool) {
 	m.Relations = append(m.Relations, schema.Reference{
 		TableName:            tableName,
 		ColumnName:           columnName,
+		ColumnType:           columnType,
 		ReferencedTableName:  referencedTableName,
 		ReferencedColumnName: referencedColumnName,
 		DeleteOption:         onDelete,
