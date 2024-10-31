@@ -274,7 +274,7 @@ func (m *Migrator) parseStructField(table *schema.Table, field reflect.StructFie
 			referencedTableName = table.Name
 			referencedColumnName = table.GetPrimaryKeyColumn().Name
 
-			fkTableName = field.Type.Name()
+			fkTableName = field.Name
 			fkColumnName = referencedTableName + "ID"
 			setRelation = true
 			isFkUnique = true
@@ -285,7 +285,7 @@ func (m *Migrator) parseStructField(table *schema.Table, field reflect.StructFie
 		referencedTableName = table.Name
 		referencedColumnName = table.GetPrimaryKeyColumn().Name
 
-		fkTableName = field.Type.Elem().Name()
+		fkTableName = field.Name
 		fkColumnName = referencedTableName + "ID"
 		setRelation = true
 		isFkUnique = false
